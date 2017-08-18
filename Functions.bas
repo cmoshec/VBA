@@ -1,9 +1,10 @@
 Attribute VB_Name = "Module1"
 
 Public Function ABC(num1, num2)
-Attribute ABC.VB_Description = "הכפלה של שני מספרים"
-Attribute ABC.VB_HelpID = 1
-Attribute ABC.VB_ProcData.VB_Invoke_Func = " \n17"
+ABC = num1 * num2
+End Function
+
+Public Function ABC(num1, num2)
 ABC = num1 * num2
 End Function
 
