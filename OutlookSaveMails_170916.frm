@@ -18,7 +18,6 @@ Attribute VB_Exposed = False
 Option Explicit
 Dim pathName As String
 
-
 Private Sub BtnSave_Click()     '******Save button
 Dim selectedComb As String
 Dim selectedOption As String
@@ -30,22 +29,8 @@ Dim i As Integer
 Dim oCtrl As Control
 
 
-                '*****setting the excel objects
-Set ExWbk = GetObject("C:\Users\Cohen\Documents\Flist.xlsx")
-Set xlSheet = ExWbk.Sheets("Sheet1")
-lRow = xlSheet.Range("C1")
-
+Me.CommandButton1.Visible = False
 selectedComb = ComboBox1.Value
-
-         '*******find the value of the combobox in the excel folder list
-For i = 1 To lRow
-If xlSheet.Range("A" & i) = selectedComb Then
-selectedComb = xlSheet.Range("B" & i)
-Exit For
-End If
-Next
-
- 
 
     '***** Checking which option button was selected in Frame1
     For Each oCtrl In Frame1.Controls
@@ -60,17 +45,47 @@ Next
         End If
     Next
 
-                    '******* setting the path to save
+  '*****in case there was no selection, exit sub
+ 
+ If selectedComb = "" Or selectedOption = "" Then
+     MsgBox "Please Choose costumer folder and sub folder"
+     Exit Sub
+ End If
+
+
+
+                '*****setting the excel objects
+Set ExWbk = GetObject("C:\Users\Cohen\Documents\Flist.xlsx")
+Set xlSheet = ExWbk.Sheets("Sheet1")
+lRow = xlSheet.Range("C1")
+
+
+         '*******find the value of the combobox in the excel folder list
+For i = 1 To lRow
+If xlSheet.Range("A" & i) = selectedComb Then
+selectedComb = xlSheet.Range("B" & i)
+Exit For
+End If
+Next
+
+                  '******* setting the path to save
                     
 pathName = selectedComb & "\" & selectedOption & "\"
 
-        
-If selectedComb = "" Or selectedOption = "" Then        '*****in case there was no selection
-MsgBox "Please Choose costumer folder and sub folder"
-ElseIf selectedOption = "Submitals" Then Call SaveAttachments(pathName)
-Else
-Call SaveMessageAsMsg(pathName)             '***** calling the save mail sub
-End If
+'***** in case folder doesn't exist
+  
+  If Dir(pathName, vbDirectory) = "" Then
+    MsgBox "The folder does not exist"
+    Exit Sub
+  End If
+ 
+
+ If selectedOption = "Submitals" Then
+ Call SaveAttachments(pathName)
+  Else
+   Call SaveMessageAsMsg(pathName)             '***** calling the save mail sub
+ End If
+
 
 Me.CommandButton1.Visible = True
 
@@ -86,7 +101,7 @@ Public Sub SaveMessageAsMsg(pathName As String)     '***** Saving the mails to t
   Dim dtDate As Date
   Dim sName As String
   Dim sBody As String
-  Dim Scount As Integer
+  Dim sCount As Integer
   Dim i As Integer
   
   
@@ -94,7 +109,7 @@ Public Sub SaveMessageAsMsg(pathName As String)     '***** Saving the mails to t
     
    Label2.Visible = True
    
-   Scount = ActiveExplorer.Selection.Count
+   sCount = ActiveExplorer.Selection.Count
 
    For Each objItem In ActiveExplorer.Selection
     If objItem.MessageClass = "IPM.Note" Then
@@ -111,7 +126,7 @@ Public Sub SaveMessageAsMsg(pathName As String)     '***** Saving the mails to t
 
      oMail.SaveAs pathName & sName, olMSG
    
-    Label2.Caption = i & "/" & Scount & "   Mails were saved"
+    Label2.Caption = i & "/" & sCount & "   Mails were saved"
     DoEvents
    
    End If
@@ -226,10 +241,18 @@ Dim objSelection As Outlook.Selection
 Dim i As Long
 Dim lngCount As Long
 Dim strFile As String
-Dim strFolderpath As String
+Dim strFolderPath As String
 Dim strDeletedFiles As String
 Dim strSubject As String
 Dim dtDate As Date
+Dim sCount As Integer
+Dim j As Integer
+
+
+
+   j = 1
+   Label2.Visible = True
+   sCount = ActiveExplorer.Selection.Count
 
 
     ' Get the path to your My Documents folder
@@ -246,18 +269,29 @@ Dim dtDate As Date
     ' Check each selected item for attachments.
     For Each objMsg In objSelection
 
-    strFolderpath = pathName      'the main folder's destination where the folder will be created
+    strFolderPath = pathName      'the main folder's destination where the folder will be created
+    
+    
     Set objAttachments = objMsg.Attachments
     lngCount = objAttachments.Count         'number of attachements
     strSubject = objMsg.Subject             'getting the name of the mail's subject
     ReplaceCharsForFileName strSubject, "-"      'calling the sub to replce characters in the name of the folder
     dtDate = objMsg.ReceivedTime            ' getting the date of the mail sent/received
-    strFolderpath = strFolderpath & "\" & Format(dtDate, "yy mm dd_", vbUseSystemDayOfWeek, _
+    strFolderPath = strFolderPath & "\" & Format(dtDate, "yy mm dd_", vbUseSystemDayOfWeek, _
     vbUseSystem) & Format(dtDate, "hhnnss_", vbUseSystemDayOfWeek, vbUseSystem) & strSubject ' the final folder name: Date_time_subject
     
     
-    MkDir strFolderpath     'creating the folder
+    If Dir(strFolderPath, vbDirectory) = "" Then
+    MkDir strFolderPath     'creating the folder
+    Else
+    MsgBox "Folder is already exists"
+    Exit Sub
+    End If
     
+    Label2.Caption = j & "/" & sCount & "   Mails were saved"
+    DoEvents
+
+    j = j + 1
         
     If lngCount > 0 Then
          
@@ -267,7 +301,7 @@ Dim dtDate As Date
       strFile = objAttachments.Item(i).filename
     
      ' Combine with the path
-      strFile = strFolderpath & "\" & strFile
+      strFile = strFolderPath & "\" & strFile
     
      ' Save the attachment as a file.
       objAttachments.Item(i).SaveAsFile strFile
