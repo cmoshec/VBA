@@ -17,9 +17,10 @@ Attribute VB_Exposed = False
 
 Option Explicit
 
-Public PathName As String       'public variables
-Const ExcelFile = "C:\Users\Cohen\Documents\Flist.xlsx"  '"C:\Users\User\Documents\Flist.xlsx"
-Const MAIN_FOLDER = "C:\Drive D"   '"\\server2k11\IBRNet\Marketing Contact Data"
+'public variables and constants
+Public PathName As String       
+Const ExcelFile = "C:\Users\User\Documents\Flist.xlsx"
+Const MAIN_FOLDER = "\\server2k11\IBRNet\Marketing Contact Data"
 
 
 Private Sub BtnSave_Click()     '******Save button
@@ -176,7 +177,7 @@ Dim xlSheet As Worksheet
 
 
 Set ExWbk = GetObject(ExcelFile)
-Set xlSheet = ExWbk.Sheets("Sheet1")
+      Set xlSheet = ExWbk.Sheets("Sheet1")               '******* First sheet must be named Sheet1
  
  
  'Create an instance of the FileSystemObject
@@ -216,7 +217,7 @@ Me.CommandButton1.Visible = False
 End Sub
 
 
-Private Sub UserForm_Initialize()           '*****Form initialization
+Private Sub UserForm_Initialize()                            '*****Form initialization
 Dim ExWbk As Workbook
 Dim xlSheet As Worksheet
 Dim i As Integer
@@ -285,8 +286,8 @@ Dim j As Integer
     vbUseSystem) & Format(dtDate, "hhnnss_", vbUseSystemDayOfWeek, vbUseSystem) & strSubject ' the final folder name: Date_time_subject
     
     
-    If Dir(strFolderPath, vbDirectory) = "" Then
-    MkDir strFolderPath     'creating the folder
+    If Dir(strFolderPath, vbDirectory) = "" Then         'checks if the folder is not exists
+      MkDir strFolderPath     'creating the folder
     Else
     MsgBox "Folder is already exists"
     Exit Sub
