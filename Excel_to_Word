@@ -1,0 +1,363 @@
+Option Explicit
+Public data(20, 3) '0=ibrd, 1=vials, 2=phase, 3=storage
+Public Colibrn, Colcompany, Colfullname, Colname, Colfor, Colibrd As Integer
+Public Coldate, Colvials, Colphase, Colquote, Coladdress, Colstorage As Integer
+Public j, ibrn, firstr, lastr As Integer
+Public vials, phase, ibrd As String
+
+Sub init()      'initialize the coloumns location varibles
+ 
+    Colibrn = 1
+    Colcompany = 3
+    Colfullname = 2
+    Colname = 4
+    Colfor = 5
+    Colibrd = 11
+    Coldate = 12
+    Colvials = 13
+    Colphase = 14
+    Colquote = 15
+    Coladdress = 16
+    Colstorage = 17
+    j = 0
+    ibrn = 0
+    firstr = 0
+    lastr = 0
+    vials = ""
+    phase = ""
+    ibrd = ""
+ 
+End Sub
+
+
+Sub dataToArray()               'get data from excel to array
+
+Dim i As Integer
+Dim storage As String
+
+
+'On Error GoTo 100
+
+Call init
+
+
+ibrn = CInt(InputBox("Enter IBRN"))
+firstr = firstIBRN(ibrn)
+If firstr = -1 Then GoTo 90
+lastr = lastIBRN(firstr, ibrn)
+
+vials = Cells(firstr, Colvials) + "-mL"         'first row data
+ibrd = Cells(firstr, Colibrd)
+phase = Cells(firstr, Colphase)
+storage = Cells(firstr, Colstorage)
+
+j = 0
+
+For i = firstr + 1 To lastr
+
+    If Cells(i, Colibrd) = ibrd Then
+       vials = vials + ", " + Cells(i, Colvials) + "-mL "
+       Else
+       data(j, 0) = ibrd                              'in between data
+       data(j, 1) = vials
+       data(j, 2) = phase
+       data(j, 3) = storage
+       ibrd = Cells(i, Colibrd)
+       vials = Cells(i, Colvials) + "-mL"
+       phase = Cells(i, Colphase)
+       storage = Cells(i, Colstorage)
+       j = j + 1
+    End If
+ 
+Next
+ 
+ data(j, 0) = ibrd                              'last row data
+ data(j, 1) = vials
+ data(j, 2) = phase
+ data(j, 3) = storage
+ 
+GoTo 100
+90:
+MsgBox ("IBRN ot found")
+
+100:
+ 
+End Sub
+
+
+Public Sub coverLetter()
+
+Dim wordApp As Word.Application
+Dim wDoc As Word.Document
+Dim objCC As ContentControl
+Dim i, samples As Integer
+Dim filename As String
+
+   
+    'On Error GoTo 100
+       
+    Call dataToArray
+    samples = j + 1
+     
+    If samples = 1 Then
+     
+        Set wordApp = CreateObject("word.application")
+        Set wDoc = wordApp.Documents.Open(ThisWorkbook.Path & "/T_CoverLetterOne.docx")
+        
+        wordApp.Visible = True
+        
+        wDoc.SelectContentControlsByTitle("Date").Item(1).Range.Text = Cells(firstr, Coldate)
+        wDoc.ContentControls(2).Range.Text = Cells(firstr, Colcompany)
+        wDoc.ContentControls(3).Range.Text = Cells(firstr, Colfullname)
+        wDoc.ContentControls(4).Range.Text = Cells(firstr, Colname)
+        wDoc.ContentControls(5).Range.Text = Cells(firstr, Colquote)
+        wDoc.ContentControls(6).Range.Text = data(0, 1) 'ibrd
+        wDoc.ContentControls(7).Range.Text = data(0, 0) 'vials
+        wDoc.ContentControls(8).Range.Text = data(0, 2) 'phase
+        wDoc.ContentControls(9).Range.Text = data(0, 3)
+         
+        wordApp.ActiveDocument.SaveAs2 (ThisWorkbook.Path & "/N_CoverLetterone.docx")
+        wordApp.Documents.Close
+        wordApp.Quit
+     
+     
+    End If
+     
+     
+     
+    If samples > 1 Then
+     
+     
+        Set wordApp = CreateObject("word.application")
+        set wdoc=wordapp.Documents.
+        Set wDoc = wordApp.Documents.Open(ThisWorkbook.Path & "/T_CoverLetterMulty.docx")
+        
+        wordApp.Visible = True
+        
+        wDoc.SelectContentControlsByTitle("Date").Item(1).Range.Text = Cells(firstr, Coldate)
+        wDoc.SelectContentControlsByTitle("Company").Item(1).Range.Text = Cells(firstr, Colcompany)
+        wDoc.SelectContentControlsByTitle("Fullname").Item(1).Range.Text = Cells(firstr, Colfullname)
+        wDoc.SelectContentControlsByTitle("Firstname").Item(1).Range.Text = Cells(firstr, Colname)
+        wDoc.SelectContentControlsByTitle("for").Item(1).Range.Text = Cells(firstr, Colfor)
+        wDoc.SelectContentControlsByTitle("Quote").Item(1).Range.Text = Cells(firstr, Colquote)
+        
+        
+        j = 7
+        For i = 0 To samples - 1
+     
+            wDoc.ContentControls(j).Range.Text = data(i, 0)
+            wDoc.ContentControls(j + 1).Range.Text = data(i, 1)
+            wDoc.ContentControls(j + 2).Range.Text = data(i, 2)
+            wDoc.ContentControls(j + 3).Range.Text = data(i, 3)
+            j = j + 4
+        Next
+     
+        filename = "CoverLetter" + "_" + Cells(firstr, Colcompany) + "_IBRN " + CStr(ibrn)
+        wordApp.ActiveDocument.SaveAs2 (ThisWorkbook.Path & "/" + filename + ".docx")
+        wordApp.Documents.Close
+        wordApp.Quit
+     
+    End If
+     
+100:
+End Sub
+
+
+Public Sub SDS()
+
+Dim wordApp As Word.Application
+Dim wDoc As Word.Document
+Dim objCC As ContentControl
+Dim i As Integer
+Dim filename, fndate, txtOil, txtWater As String
+
+
+    Call dataToArray
+    
+    'creating the samples names string'
+    txtOil = ""
+    txtWater = ""
+    For i = 0 To j
+        If data(i, 2) = "oil" Then txtOil = txtOil + CStr(data(i, 0)) + chr(13)
+        If data(i, 2) = "water" Then txtWater = txtWater + CStr(data(i, 0)) + chr(13)
+    Next
+    
+    If txtOil <> "" Then
+        Set wordApp = CreateObject("word.application")
+        Set wDoc = wordApp.Documents.Open(ThisWorkbook.Path & "/T_SDSoil.docx")
+        
+        wordApp.Visible = True
+        wDoc.ContentControls(1).Range.Text = txtOil
+        
+        'fndate = retDate("-", 2000, 1)
+        filename = "SDS oil samples" + "_" + Cells(firstr, Colcompany) + "_IBRN " + CStr(ibrn)
+        wordApp.ActiveDocument.SaveAs2 (ThisWorkbook.Path & "/" & filename & ".docx")
+        wordApp.Documents.Close
+        wordApp.Quit
+    End If
+    
+    If txtWater <> "" Then
+        Set wordApp = CreateObject("word.application")
+        Set wDoc = wordApp.Documents.Open(ThisWorkbook.Path & "/T_SDSwater.docx")
+        
+        wordApp.Visible = True
+        wDoc.ContentControls(1).Range.Text = txtWater
+        
+        'fndate = retDate("-", 2000, 1)
+        filename = "SDS water samples" + "_" + Cells(firstr, Colcompany) + "_IBRN " + CStr(ibrn)
+        wordApp.ActiveDocument.SaveAs2 (ThisWorkbook.Path & "/" & filename & ".docx")
+        wordApp.Documents.Close
+        wordApp.Quit
+    End If
+    
+
+End Sub
+
+
+Public Sub Proforma()
+
+Dim wordApp As Word.Application
+Dim wDoc As Word.Document
+Dim objCC As ContentControl
+Dim i, samples As Integer
+Dim address, filename As String
+
+    
+    Call dataToArray
+    
+    samples = j + 1
+    
+    Set wordApp = CreateObject("word.application")
+    On Error GoTo FileOpen
+    Set wDoc = wordApp.Documents("T_Proforma.docx")
+    
+    Set wDoc = wordApp.Documents.Open(ThisWorkbook.Path & "/T_Proforma.docx")
+    
+    wordApp.Visible = True
+    
+    wDoc.SelectContentControlsByTitle("address").Item(1).Range.Text = Cells(firstr, Coladdress)
+    wDoc.SelectContentControlsByTitle("date").Item(1).Range.Text = retDate("/", 0, 0)
+    wDoc.SelectContentControlsByTitle("ibrn").Item(1).Range.Text = ibrn
+    wDoc.SelectContentControlsByTitle("proforma").Item(1).Range.Text = retDate("", 0, 0)
+    
+    
+    
+    j = 5
+    For i = 0 To samples - 1
+        wDoc.ContentControls(j).Range.Text = data(i, 0)
+        wDoc.ContentControls(j + 1).Range.Text = data(i, 1)
+        j = j + 2
+    Next
+    
+    filename = "Proforma" + "_" + Cells(firstr, Colcompany) + "_IBRN " + CStr(ibrn)
+    wordApp.ActiveDocument.SaveAs2 (ThisWorkbook.Path & "/" & filename & ".docx")
+    wordApp.Documents.Close
+    wordApp.Quit
+    GoTo Finish
+    
+    
+FileOpen:
+    MsgBox ("file is already open")
+
+Finish:
+  
+
+End Sub
+
+
+
+Public Function firstIBRN(ibrn) As Integer
+Dim i, lRow As Integer
+
+    On Error GoTo 100
+    
+    lRow = Cells(Rows.Count, 1).End(xlUp).Row
+    i = 3
+    While Cells(i, Colibrn) <> ibrn
+        i = i + 1
+        If i > lRow Then GoTo 90:
+    Wend
+    firstIBRN = i
+    GoTo 100
+90:
+    firstIBRN = -1
+100:
+End Function
+
+Public Function lastIBRN(first, ibrn) As Integer
+Dim i As Integer
+    
+    i = first
+    While Cells(i, Colibrn) = ibrn
+        i = i + 1
+    Wend
+    lastIBRN = i - 1
+
+End Function
+
+Public Function retDate(separator As String, subyear As Integer, yearfirst As Integer) As String
+Dim y, m, d As Integer
+
+    y = Year(Now()) - subyear
+    m = Month(Now())
+    d = Day(Now())
+    
+    If yearfirst = 1 Then
+        retDate = CStr(y) + separator + "0" + CStr(m) + separator + "0" + CStr(d)
+    Else
+        retDate = "0" + CStr(d) + separator + "0" + CStr(m) + separator + "0" + CStr(y)
+    End If
+
+End Function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Public Sub ShowMenu()
+UserForm1.Show
+End Sub
+
+
+Public Sub ContControl_trial()
+Dim wordApp As Word.Application
+Dim wDoc As Word.Document
+Dim objCC As ContentControl
+Dim objCCs As ContentControls
+Dim i, contcount As Integer
+Dim x As String
+
+
+
+On Error Resume Next
+
+ Set wordApp = CreateObject("word.application")
+ Set wDoc = wordApp.Documents.Open(ThisWorkbook.Path & "/T_CoverLetterMulty.docx")
+ wordApp.Visible = True
+ 
+ 
+ Set objCCs = wDoc.ContentControls
+ 
+ contcount = objCCs.Count
+ 
+ wDoc.SelectContentControlsByTitle("IBRD").Count
+  
+ For i = 1 To 4
+   wDoc.SelectContentControlsByTitle("IBRD").Item(i).Range.Text = i
+   wDoc.SelectContentControlsByTitle("vials").Item(i).Range.Text = i
+
+ Next
+  
+  
+
+End Sub
+
