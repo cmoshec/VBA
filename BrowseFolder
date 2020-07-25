@@ -1,5 +1,37 @@
+Option Explicit
 
-Function BrowseForFolder(Optional OpenAt As Variant) As Variant  'select folder dialog
+Public Sub Save_Messages_Select_Ask2()
+
+Dim oMail As Outlook.MailItem
+Dim objItem As Object
+Dim sPath As String
+Dim dtDate As Date
+Dim sName As String
+Dim enviro As String
+
+enviro = CStr(Environ("USERPROFILE"))
+For Each objItem In ActiveExplorer.Selection
+
+If objItem.MessageClass = "IPM.Note" Then
+Set oMail = objItem
+
+sName = oMail.Subject
+
+dtDate = oMail.ReceivedTime
+sName = Format(dtDate, "yyyy mm dd", vbUseSystemDayOfWeek, _
+vbUseSystem) & Format(dtDate, " hhnn", _
+vbUseSystemDayOfWeek, vbUseSystem) & " - " & sName & ".msg"
+
+sPath = BrowseForFolder(enviro & "\Documents\")
+Debug.Print sPath & "\" & sName
+oMail.SaveAs sPath & "\" & sName, olMSG
+
+End If
+Next
+
+End Sub
+
+Function BrowseForFolder(Optional OpenAt As Variant) As Variant
 
 Dim ShellApp As Object
 Set ShellApp = CreateObject("Shell.Application"). _
